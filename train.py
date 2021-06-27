@@ -83,7 +83,7 @@ cudnn.benchmark = True
 
 
 optimizer = optim.SGD(net.parameters(), lr=initial_lr, momentum=momentum, weight_decay=weight_decay)
-criterion = MultiBoxLoss(num_classes, 0.35, True, 0, True, 7, 0.35, False, landmark_num)
+criterion = MultiBoxLoss(num_classes, 0.35, True, 0, True, 7, 0.35, False)
 
 priorbox = PriorBox(cfg, image_size=(img_dim, img_dim))
 with torch.no_grad():
@@ -97,7 +97,7 @@ def train():
     print('Loading Dataset...')
 
     # dataset = WiderFaceDetection( training_dataset, landmark_num, preproc(img_dim, rgb_mean, landmark_num))
-    dataset = BSJFaceData(root=root_train, image_size=[3, img_dim, img_dim], n_points=n_points, preproc=preproc(img_dim, rgb_mean, landmark_num), transform=None)
+    dataset = BSJFaceData(root=root_train, image_size=[3, img_dim, img_dim], preproc=preproc(img_dim, rgb_mean), transform=None)
     
 
     epoch_size = math.ceil(len(dataset) / batch_size)
@@ -138,17 +138,17 @@ def train():
 
         # backprop
         optimizer.zero_grad()
-        loss_l, loss_c, loss_landm = criterion(out, priors, targets)
-        loss = cfg['loc_weight'] * loss_l + loss_c + loss_landm
+        loss_l, loss_c = criterion(out, priors, targets)
+        loss = cfg['loc_weight'] * loss_l + loss_c
         loss.backward()
         optimizer.step()
         load_t1 = time.time()
         batch_time = load_t1 - load_t0
         eta = int(batch_time * (max_iter - iteration))
         if ((iteration % epoch_size) + 1) % 100 == 0:
-            print('Epoch:{}/{} || Epochiter: {}/{} || Iter: {}/{} || Loc: {:.4f} Cla: {:.4f} Landm: {:.4f} || LR: {:.8f} || Batchtime: {:.4f} s || ETA: {}'
+            print('Epoch:{}/{} || Epochiter: {}/{} || Iter: {}/{} || Loc: {:.4f} Cla: {:.4f} || LR: {:.8f} || Batchtime: {:.4f} s || ETA: {}'
                 .format(epoch, max_epoch, (iteration % epoch_size) + 1,
-                epoch_size, iteration + 1, max_iter, loss_l.item(), loss_c.item(), loss_landm.item(), lr, batch_time, str(datetime.timedelta(seconds=eta))))
+                epoch_size, iteration + 1, max_iter, loss_l.item(), loss_c.item(), lr, batch_time, str(datetime.timedelta(seconds=eta))))
 
     torch.save(net.state_dict(), save_folder + cfg['name'] + '_Final.pth')
     # torch.save(net.state_dict(), save_folder + 'Final_Retinaface.pth')
@@ -171,7 +171,7 @@ def adjust_learning_rate(optimizer, gamma, epoch, step_index, iteration, epoch_s
 if __name__ == '__main__':
     train()
     # print("aaaaaaaaaaaaaaaaaa")
-    # dummy_input = torch.randn(1, 3, 160, 160)
+    # dummy_input = torch.randn(1, 3, 192, 192)
     # retinaface = RetinaFace(cfg_mnet)
 
     # from thop import profile

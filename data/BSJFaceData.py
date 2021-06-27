@@ -19,11 +19,10 @@ def _resize_subtract_mean(image, image_size):
     return image.transpose(2, 0, 1)
 
 class BSJFaceData(data.Dataset):
-    def __init__(self, root, image_size=[3, 640, 640], n_points=40, preproc=None, transform=None):
+    def __init__(self, root, image_size=[3, 192, 192], preproc=None, transform=None):
         self.preproc = preproc
         self.root = root
         self.image_size = image_size
-        self.n_points = n_points
 
         self.transform = transform
 
@@ -74,8 +73,8 @@ class BSJFaceData(data.Dataset):
         return len(self.imgs_path)
     
     def __str__(self):
-        return "train image {} lanmark, dataset imgae size {}.all image {}. target bbox {}. target landmark {}".format(
-            self.n_points, self.image_size, len(self.imgs_path), self.target_bbox, self.target_landmark)
+        return "dataset imgae size {}.all image {}. target bbox {}. target landmark {}".format(
+            self.image_size, len(self.imgs_path), self.target_bbox, self.target_landmark)
 
     def __getitem__(self, index):
         img_path = self.imgs_path[index]["name"]
@@ -109,10 +108,10 @@ class BSJFaceData(data.Dataset):
         # boxes_t[:, 0::2] /= self.image_size[2]
         # boxes_t[:, 1::2] /= self.image_size[1]
 
-        annotations = np.zeros((0, self.n_points + 5), dtype=np.float)
+        annotations = np.zeros((0, 5), dtype=np.float)
         for idx, key in enumerate(face_group):
             face_info = face_group[key]
-            annotation = np.zeros((1, self.n_points + 5), dtype=np.float)
+            annotation = np.zeros((1, 5), dtype=np.float)
             # bbox
             # annotation[0, 0] = float(face_info["face"][0][0]) * w_rate / self.image_size[2]     # x1
             # annotation[0, 1] = float(face_info["face"][0][1]) * h_rate / self.image_size[1]     # y1
@@ -131,41 +130,42 @@ class BSJFaceData(data.Dataset):
             #     # annotation[0, i * 2 + 4] = float(points[0]) * w_rate / self.image_size[2]   # x
             #     # annotation[0, i * 2 + 5] = float(points[1]) * h_rate / self.image_size[1]   # y
 
-            if self.n_points == 40:
-                for i in range(20):
-                    points = face_info["landmark"][i]
-                    annotation[0, i * 2 + 4] = float(points[0])    # x
-                    annotation[0, i * 2 + 5] = float(points[1])    # y
-                    # annotation[0, i * 2 + 4] = float(points[0]) * w_rate / self.image_size[2]   # x
-                    # annotation[0, i * 2 + 5] = float(points[1]) * h_rate / self.image_size[1]   # y
-            elif self.n_points == 10:
-                pointsArr = face_info["landmark"]
-                # 左眼坐标
-                annotation[0, 4] = float(pointsArr[6][0]+pointsArr[8][0]) / 2
-                annotation[0, 5] = float(pointsArr[7][1]+pointsArr[9][1]) / 2
+            # if self.n_points == 40:
+            #     for i in range(20):
+            #         points = face_info["landmark"][i]
+            #         annotation[0, i * 2 + 4] = float(points[0])    # x
+            #         annotation[0, i * 2 + 5] = float(points[1])    # y
+            #         # annotation[0, i * 2 + 4] = float(points[0]) * w_rate / self.image_size[2]   # x
+            #         # annotation[0, i * 2 + 5] = float(points[1]) * h_rate / self.image_size[1]   # y
+            # elif self.n_points == 10:
+            #     pointsArr = face_info["landmark"]
+            #     # 左眼坐标
+            #     annotation[0, 4] = float(pointsArr[6][0]+pointsArr[8][0]) / 2
+            #     annotation[0, 5] = float(pointsArr[7][1]+pointsArr[9][1]) / 2
 
-                # 右眼坐标
-                annotation[0, 6] = float(pointsArr[10][0]+pointsArr[12][0]) / 2
-                annotation[0, 7] = float(pointsArr[11][1]+pointsArr[13][1]) / 2
+            #     # 右眼坐标
+            #     annotation[0, 6] = float(pointsArr[10][0]+pointsArr[12][0]) / 2
+            #     annotation[0, 7] = float(pointsArr[11][1]+pointsArr[13][1]) / 2
 
-                # 鼻尖坐标
-                annotation[0, 8] = float(pointsArr[14][0])
-                annotation[0, 9] = float(pointsArr[14][1])
+            #     # 鼻尖坐标
+            #     annotation[0, 8] = float(pointsArr[14][0])
+            #     annotation[0, 9] = float(pointsArr[14][1])
 
-                # 左嘴角坐标
-                annotation[0, 10] = float(pointsArr[15][0])
-                annotation[0, 11] = float(pointsArr[15][1])
+            #     # 左嘴角坐标
+            #     annotation[0, 10] = float(pointsArr[15][0])
+            #     annotation[0, 11] = float(pointsArr[15][1])
 
-                # 右嘴角坐标
-                annotation[0, 12] = float(pointsArr[17][0])
-                annotation[0, 13] = float(pointsArr[17][1])
+            #     # 右嘴角坐标
+            #     annotation[0, 12] = float(pointsArr[17][0])
+            #     annotation[0, 13] = float(pointsArr[17][1])
 
 
-            # 是否关键点坐标
-            if np.sum(annotation[0, 4:]) == 0:
-                annotation[0, -1] = -1
-            else:
-                annotation[0, -1] = 1
+            # # 是否关键点坐标
+            # if np.sum(annotation[0, 4:]) == 0:
+            #     annotation[0, -1] = -1
+            # else:
+            #     annotation[0, -1] = 1
+            annotation[0, 4] = 1
 
             annotations = np.append(annotations, annotation, axis=0)
 

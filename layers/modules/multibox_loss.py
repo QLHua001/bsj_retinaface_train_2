@@ -29,7 +29,7 @@ class MultiBoxLoss(nn.Module):
         See: https://arxiv.org/pdf/1512.02325.pdf for more details.
     """
 
-    def __init__(self, num_classes, overlap_thresh, prior_for_matching, bkg_label, neg_mining, neg_pos, neg_overlap, encode_target, landmark_num):
+    def __init__(self, num_classes, overlap_thresh, prior_for_matching, bkg_label, neg_mining, neg_pos, neg_overlap, encode_target):
         super(MultiBoxLoss, self).__init__()
         self.num_classes = num_classes
         self.threshold = overlap_thresh
@@ -40,7 +40,6 @@ class MultiBoxLoss(nn.Module):
         self.negpos_ratio = neg_pos
         self.neg_overlap = neg_overlap
         self.variance = [0.1, 0.2]
-        self.landmark_num = landmark_num
 
     def forward(self, predictions, priors, targets):
         """Multibox Loss
@@ -55,7 +54,7 @@ class MultiBoxLoss(nn.Module):
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
 
-        loc_data, conf_data, landm_data = predictions
+        loc_data, conf_data = predictions
         priors = priors
         num = loc_data.size(0)
         num_priors = (priors.size(0))
@@ -65,50 +64,50 @@ class MultiBoxLoss(nn.Module):
 
         # match priors (default boxes) and ground truth boxes
         loc_t = torch.Tensor(num, num_priors, 4)
-        landm_t = torch.Tensor(num, num_priors, self.landmark_num*2) #QLHUA TEST landmarks 10 --> 40
+        # landm_t = torch.Tensor(num, num_priors, self.landmark_num*2) #QLHUA TEST landmarks 10 --> 40
         conf_t = torch.LongTensor(num, num_priors)
         for idx in range(num):
             truths = targets[idx][:, :4].data
             labels = targets[idx][:, -1].data
-            if self.landmark_num == 5:
-                landms = targets[idx][:, 4:14].data #QLHUA TEST landmarks 4:14 --> 4:44
-            elif self.landmark_num == 20:
-                landms = targets[idx][:, 4:44].data #QLHUA TEST landmarks 4:14 --> 4:44 
+            # if self.landmark_num == 5:
+            #     landms = targets[idx][:, 4:14].data #QLHUA TEST landmarks 4:14 --> 4:44
+            # elif self.landmark_num == 20:
+            #     landms = targets[idx][:, 4:44].data #QLHUA TEST landmarks 4:14 --> 4:44 
             defaults = priors.data
-            match(self.threshold, truths, defaults, self.variance, labels, landms, loc_t, conf_t, landm_t, idx, self.landmark_num)
+            match(self.threshold, truths, defaults, self.variance, labels, loc_t, conf_t, idx)
         if GPU:
             loc_t = loc_t.cuda()
             conf_t = conf_t.cuda()
-            landm_t = landm_t.cuda()
+            # landm_t = landm_t.cuda()
 
         zeros = torch.tensor(0).cuda()
-        # landm Loss (Smooth L1)
-        # Shape: [batch,num_priors,10]
-        pos1 = conf_t > zeros
-        num_pos_landm = pos1.long().sum(1, keepdim=True)
-        N1 = max(num_pos_landm.data.sum().float(), 1)
-        pos_idx1 = pos1.unsqueeze(pos1.dim()).expand_as(landm_data)
+        # # landm Loss (Smooth L1)
+        # # Shape: [batch,num_priors,10]
+        # pos1 = conf_t > zeros
+        # num_pos_landm = pos1.long().sum(1, keepdim=True)
+        # N1 = max(num_pos_landm.data.sum().float(), 1)
+        # pos_idx1 = pos1.unsqueeze(pos1.dim()).expand_as(landm_data)
 
-        # print("QLHUA TEST landmarks:")
-        # print("pos1:")
-        # print(pos1.shape)
-        # print(pos1)
-        # print("num_pos_landm:")
-        # print(num_pos_landm.shape)
-        # print(num_pos_landm)
-        # print("N1:")
-        # print(N1.shape)
-        # print(N1)
-        # print("pos_idx1:")
-        # print(pos_idx1.shape)
-        # print(pos_idx1)
-        landm_p = landm_data[pos_idx1].view(-1, self.landmark_num*2) #QLHUA TEST landmarks 10 --> 40
-        landm_t = landm_t[pos_idx1].view(-1, self.landmark_num*2)    #QLHUA TEST landmarks 10 --> 40
-        # print(landm_p.shape)
-        # print(landm_p)
-        # print(landm_t.shape)
-        # print(landm_t)
-        loss_landm = F.smooth_l1_loss(landm_p, landm_t, reduction='sum')
+        # # print("QLHUA TEST landmarks:")
+        # # print("pos1:")
+        # # print(pos1.shape)
+        # # print(pos1)
+        # # print("num_pos_landm:")
+        # # print(num_pos_landm.shape)
+        # # print(num_pos_landm)
+        # # print("N1:")
+        # # print(N1.shape)
+        # # print(N1)
+        # # print("pos_idx1:")
+        # # print(pos_idx1.shape)
+        # # print(pos_idx1)
+        # landm_p = landm_data[pos_idx1].view(-1, self.landmark_num*2) #QLHUA TEST landmarks 10 --> 40
+        # landm_t = landm_t[pos_idx1].view(-1, self.landmark_num*2)    #QLHUA TEST landmarks 10 --> 40
+        # # print(landm_p.shape)
+        # # print(landm_p)
+        # # print(landm_t.shape)
+        # # print(landm_t)
+        # loss_landm = F.smooth_l1_loss(landm_p, landm_t, reduction='sum')
 
 
         pos = conf_t != zeros
@@ -145,6 +144,6 @@ class MultiBoxLoss(nn.Module):
         N = max(num_pos.data.sum().float(), 1)
         loss_l /= N
         loss_c /= N
-        loss_landm /= N1
+        # loss_landm /= N1
 
-        return loss_l, loss_c, loss_landm
+        return loss_l, loss_c

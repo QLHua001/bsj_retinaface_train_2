@@ -38,11 +38,8 @@ class WiderFaceDetection(data.Dataset):
         return len(self.imgs_path)
 
     def __getitem__(self, index):
-        print("getitem_index:")
-        print(index)
         img = cv2.imread(self.imgs_path[index])
         height, width, _ = img.shape
-        print(self.imgs_path[index])
 
         labels = self.words[index]
         if landmark_num == 5:

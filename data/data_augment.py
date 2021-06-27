@@ -4,7 +4,7 @@ import random
 from utils.box_utils import matrix_iof
 
 
-def _crop(image, boxes, labels, landm, img_dim, landmark_num):
+def _crop(image, boxes, labels, img_dim):
     height, width, _ = image.shape
     pad_image_flag = True
 
@@ -36,15 +36,15 @@ def _crop(image, boxes, labels, landm, img_dim, landmark_num):
         if not flag.any():
             continue
 
-        centers = (boxes[:, :2] + boxes[:, 2:]) / 2   # ×¢Òâ£¬ ÔÚÕâÀï£¬boxesµÄËÄ¸öÖµÊÇ×óÉÏµãµÄ×ø±êºÍÓÒÏÂµãµÄ×ø±ê
+        centers = (boxes[:, :2] + boxes[:, 2:]) / 2   # ×¢ï¿½â£¬ ï¿½ï¿½ï¿½ï¿½ï¿½ï£¬boxesï¿½ï¿½ï¿½Ä¸ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-        # QTEST ±ÜÃâ°ëÕÅÁ³µÄÍ¼Æ¬ QTEST QTEST
+        # QTEST ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ QTEST QTEST
         mask_a = np.logical_and(roi[:2] < centers, centers < roi[2:]).all(axis=1)
         # mask_a = np.logical_and(roi[:2] < boxes[:, :2], boxes[:, 2:] < roi[2:]).all(axis=1)
         boxes_t = boxes[mask_a].copy()
         labels_t = labels[mask_a].copy()
-        landms_t = landm[mask_a].copy()
-        landms_t = landms_t.reshape([-1, landmark_num, 2]) # BSJ ¼ì²â20¸ö¹Ø¼üµã 
+        # landms_t = landm[mask_a].copy()
+        # landms_t = landms_t.reshape([-1, landmark_num, 2]) # BSJ ï¿½ï¿½ï¿½20ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ 
 
         # print("centers: ")
         # print("roi: ")
@@ -68,13 +68,13 @@ def _crop(image, boxes, labels, landm, img_dim, landmark_num):
 
         # print(boxes_t)
 
-        # landm
-        landms_t[:, :, :2] = landms_t[:, :, :2] - roi[:2]
-        # QTEST È¥³ý¹Ø¼üµã×ø±ê¹éÁã
-        landms_t[:, :, :2] = np.maximum(landms_t[:, :, :2], np.array([0, 0]))
-        landms_t[:, :, :2] = np.minimum(landms_t[:, :, :2], roi[2:] - roi[:2])
-        # landms_t = landms_t.reshape([-1, 10])
-        landms_t = landms_t.reshape([-1, landmark_num*2])
+        # # landm
+        # landms_t[:, :, :2] = landms_t[:, :, :2] - roi[:2]
+        # # QTEST È¥ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        # landms_t[:, :, :2] = np.maximum(landms_t[:, :, :2], np.array([0, 0]))
+        # landms_t[:, :, :2] = np.minimum(landms_t[:, :, :2], roi[2:] - roi[:2])
+        # # landms_t = landms_t.reshape([-1, 10])
+        # landms_t = landms_t.reshape([-1, landmark_num*2])
 
         # print("landms_t: ")
         # print(landms_t)
@@ -86,7 +86,7 @@ def _crop(image, boxes, labels, landm, img_dim, landmark_num):
         mask_b = np.minimum(b_w_t, b_h_t) > 0.0
         boxes_t = boxes_t[mask_b]
         labels_t = labels_t[mask_b]
-        landms_t = landms_t[mask_b]
+        # landms_t = landms_t[mask_b]
         # print("b_w_t, b_h_t: ")
         # print(b_w_t)
         # print(b_h_t)
@@ -97,8 +97,8 @@ def _crop(image, boxes, labels, landm, img_dim, landmark_num):
 
         pad_image_flag = False
 
-        return image_t, boxes_t, labels_t, landms_t, pad_image_flag
-    return image, boxes, labels, landm, pad_image_flag
+        return image_t, boxes_t, labels_t, pad_image_flag
+    return image, boxes, labels, pad_image_flag
 
 
 def _distort(image):
@@ -232,21 +232,20 @@ def _resize_subtract_mean(image, insize, rgb_mean):
 
 class preproc(object):
 
-    def __init__(self, img_dim, rgb_means, landmark_num):
+    def __init__(self, img_dim, rgb_means):
         self.img_dim = img_dim
         self.rgb_means = rgb_means
-        self.landmark_num = landmark_num
 
     def __call__(self, image, targets):
         assert targets.shape[0] > 0, "this image does not have gt"
 
         boxes = targets[:, :4].copy()
         labels = targets[:, -1].copy()
-        landm = targets[:, 4:-1].copy()
+        # landm = targets[:, 4:-1].copy()
 
-        image_t, boxes_t, labels_t, landm_t, pad_image_flag = _crop(image, boxes, labels, landm, self.img_dim, self.landmark_num)
-        image_t = _distort(image_t) # QLHUA TEST Ïàµ±ÓÚµ÷ÕûÍ¼ÏñµÄÏñËØÖµ
-        image_t = _pad_to_square(image_t,self.rgb_means, pad_image_flag) # QLHUA TEST ½«Í¼Æ¬µÄ¿í¶ÈÓÃÍ¼Ïñ¾ùÖµÀ©³äµ½¸úÍ¼Ïñ³¤¶ÈÒ»Ñù
+        image_t, boxes_t, labels_t, pad_image_flag = _crop(image, boxes, labels, self.img_dim)
+        image_t = _distort(image_t) # QLHUA TEST ï¿½àµ±ï¿½Úµï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        image_t = _pad_to_square(image_t,self.rgb_means, pad_image_flag) # QLHUA TEST ï¿½ï¿½Í¼Æ¬ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½äµ½ï¿½ï¿½Í¼ï¿½ñ³¤¶ï¿½Ò»ï¿½ï¿½
         # image_t, boxes_t, landm_t = _mirror(image_t, boxes_t, landm_t)
         height, width, _ = image_t.shape
         image_t = _resize_subtract_mean(image_t, self.img_dim, self.rgb_means)
@@ -256,8 +255,8 @@ class preproc(object):
         boxes_t[:, 0::2] /= width
         boxes_t[:, 1::2] /= height
 
-        landm_t[:, 0::2] /= width
-        landm_t[:, 1::2] /= height
+        # landm_t[:, 0::2] /= width
+        # landm_t[:, 1::2] /= height
 
         # print("BBBBBBBBBBBBBBBBBBBBB")
         # print("image_t boxes_t labels_t landm_t shape: ")
@@ -271,6 +270,6 @@ class preproc(object):
         # print(boxes_t)
 
         labels_t = np.expand_dims(labels_t, 1)
-        targets_t = np.hstack((boxes_t, landm_t, labels_t))
+        targets_t = np.hstack((boxes_t, labels_t))
 
         return image_t, targets_t
