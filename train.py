@@ -18,13 +18,13 @@ parser = argparse.ArgumentParser(description='Retinaface Training')
 parser.add_argument('--training_dataset', default='./data/widerface/train/label.txt', help='Training dataset directory')
 parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
-parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
+parser.add_argument('--lr', '--learning-rate', default=1e-2, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--resume_net', default=None, help='resume net for retraining')
 parser.add_argument('--resume_epoch', default=0, type=int, help='resume iter for retraining')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
-parser.add_argument('--save_folder', default='./20-point-weights/', help='Location to save checkpoint models')
+parser.add_argument('--save_folder', default='./myWeights/20210627-192-three-stages-no-landmark/', help='Location to save checkpoint models')
 
 args = parser.parse_args()
 
@@ -103,7 +103,7 @@ def train():
     epoch_size = math.ceil(len(dataset) / batch_size)
     max_iter = max_epoch * epoch_size
 
-    stepvalues = (cfg['decay1'] * epoch_size, cfg['decay2'] * epoch_size)
+    stepvalues = (cfg['decay1'] * epoch_size, cfg['decay2'] * epoch_size, cfg['decay3'] * epoch_size)
     step_index = 0
 
     if args.resume_epoch > 0:

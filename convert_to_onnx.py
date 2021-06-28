@@ -15,7 +15,7 @@ import onnx
 
 
 parser = argparse.ArgumentParser(description='Test')
-parser.add_argument('-m', '--trained_model', default='./20-point-weights/Retinaface_192_v0529a-1/mobilenet0.25_Final.pth',
+parser.add_argument('-m', '--trained_model', default='./myWeights/20210627-192-three-stages-no-landmark/mobilenet0.25_Final.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--network', default='mobile0.25', help='Backbone network mobile0.25 or resnet50')
 parser.add_argument('--long_side', default=192, help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
@@ -83,22 +83,22 @@ if __name__ == '__main__':
     net = net.to(device)
 
     # ------------------------ export -----------------------------
-    output_onnx = 'Retinaface_192_v0529a-1.onnx'
+    output_onnx = 'Retinaface_192_three_stages_no_landmark_v0627a.onnx'
     print("==> Exporting model to ONNX format at '{}'".format(output_onnx))
     input_names = ["input0"]
-    output_names = ["output0","output1", "output2"]
+    output_names = ["output0","output1"]
     print("args.long_side: ", args.long_side)
     inputs = torch.randn(1, 3, args.long_side, args.long_side).to(device)
 
     torch_out = torch.onnx._export(net, inputs, output_onnx, export_params=True, verbose=False,
                                    input_names=input_names, output_names=output_names)
     
-    model = onnx.load("./Retinaface_192_v0529a-1.onnx")
-    dim_proto0 = model.graph.input[0].type.tensor_type.shape.dim[2]
-    dim_proto0.dim_param = 'input.0_2'
-    dim_proto1 = model.graph.input[0].type.tensor_type.shape.dim[3]
-    dim_proto1.dim_param = 'input.0_3'
-    onnx.save(model, 'Retinaface_192_v0529a-1_dynaInput.onnx')
+    # model = onnx.load("./Retinaface_192_v0529a-1.onnx")
+    # dim_proto0 = model.graph.input[0].type.tensor_type.shape.dim[2]
+    # dim_proto0.dim_param = 'input.0_2'
+    # dim_proto1 = model.graph.input[0].type.tensor_type.shape.dim[3]
+    # dim_proto1.dim_param = 'input.0_3'
+    # onnx.save(model, 'Retinaface_192_v0529a-1_dynaInput.onnx')
 
 
 
